@@ -1,36 +1,22 @@
-import logging
-import os
 from telegram import Update
-from telegram.ext import (
-    ApplicationBuilder,
-    ContextTypes,
-    CommandHandler
-)
+from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
 
-# ▶️ টেলিগ্রাম বট টোকেন
-BOT_TOKEN = os.getenv("BOT_TOKEN", "YOUR_TOKEN_HERE")
+# তোমার বট টোকেন এখানে বসানো হয়েছে
+BOT_TOKEN = "8233163567:AAH3e52dUJBcI7oKwO5iMM5X1CsVHNujmsk"
 
-# ✅ লগিং সিস্টেম (ডিবাগিং এর জন্য ভালো)
-logging.basicConfig(
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
-    level=logging.INFO
-)
-
-# 📌 /start কমান্ড হ্যান্ডলার
+# /start কমান্ড হ্যান্ডলার
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("👋 হ্যালো! আমি সফলভাবে চালু হয়েছি!")
+    await update.message.reply_text("👋 হ্যালো! আমি Render-এ হোস্ট করা একটি লাইভ স্কোর বট!")
 
-# 📌 /help কমান্ড হ্যান্ডলার
-async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("🤖 আমি Telegram বট! শুধু /start লিখে শুরু করুন।")
+# সাধারণ মেসেজ হ্যান্ডলার (পরীক্ষামূলক)
+async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text(f"⚽ আপনি লিখেছেন: {update.message.text}")
 
-# ▶️ অ্যাপ্লিকেশন তৈরি ও হ্যান্ডলার যুক্ত করা
-app = ApplicationBuilder().token(BOT_TOKEN).build()
-
-app.add_handler(CommandHandler("start", start))
-app.add_handler(CommandHandler("help", help_command))
-
-# ▶️ বট চালু (24x7 polling mode)
+# এন্ট্রি পয়েন্ট
 if __name__ == "__main__":
-    print("✅ Bot is running...")
+    app = ApplicationBuilder().token(BOT_TOKEN).build()
+
+    app.add_handler(CommandHandler("start", start))
+    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
+
     app.run_polling()
