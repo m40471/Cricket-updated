@@ -1,66 +1,36 @@
-import requests
-from telegram import Update, Bot
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
+import logging
+import os
+from telegram import Update
+from telegram.ext import (
+    ApplicationBuilder,
+    ContextTypes,
+    CommandHandler
+)
 
-BOT_TOKEN = "8233163567:AAH3e52dUJBcI7oKwO5iMM5X1CsVHNujmsk"
-API_URL = "https://api.cricbuzz.com/cricket-scores/v1/live"
+# ▶️ টেলিগ্রাম বট টোকেন
+BOT_TOKEN = os.getenv("BOT_TOKEN", "YOUR_TOKEN_HERE")
 
-bot = Bot(token=BOT_TOKEN)
+# ✅ লগিং সিস্টেম (ডিবাগিং এর জন্য ভালো)
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
 
+# 📌 /start কমান্ড হ্যান্ডলার
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    r = requests.get(API_URL)
-    data = r.json()
+    await update.message.reply_text("👋 হ্যালো! আমি সফলভাবে চালু হয়েছি!")
 
-    msg = "🏏 আজকের লাইভ ম্যাচ:\n\n"
-    context.user_data['matches'] = {}
+# 📌 /help কমান্ড হ্যান্ডলার
+async def help_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.message.reply_text("🤖 আমি Telegram বট! শুধু /start লিখে শুরু করুন।")
 
-    for i, match in enumerate(data.get("matches", []), start=1):
-        title = match['matchInfo']['matchDesc']
-        teams = match['matchInfo']['team1']['teamName'] + " vs " + match['matchInfo']['team2']['teamName']
-        match_id = match['matchInfo']['matchId']
-        msg += f"{i}. {teams} ({title})\n"
-        context.user_data['matches'][str(i)] = match_id
-
-    msg += "\n👉 যেকোনো নাম্বার দিন (যেমন 1) ম্যাচ ডিটেইলস পেতে।"
-    await update.message.reply_text(msg)
-
-async def match_details(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    msg_id = update.message.text.strip()
-
-    if msg_id not in context.user_data.get('matches', {}):
-        await update.message.reply_text("❌ ভুল নাম্বার দিয়েছেন।")
-        return
-
-    match_id = context.user_data['matches'][msg_id]
-    url = f"https://api.cricbuzz.com/cricket-scores/v1/match/{match_id}"
-    res = requests.get(url).json()
-
-    team1 = res['matchInfo']['team1']['teamName']
-    team2 = res['matchInfo']['team2']['teamName']
-    toss = res.get('matchInfo', {}).get('toss', {}).get('text', 'Toss info not available')
-    status = res['matchInfo']['status']
-    score = res.get('scoreCard', [{}])[0]
-    batting = score.get('batTeamDetails', {}).get('batTeamName', 'N/A')
-    total = score.get('scoreDetails', {}).get('runs', 0)
-    wickets = score.get('scoreDetails', {}).get('wickets', 0)
-    overs = score.get('scoreDetails', {}).get('overs', '0.0')
-    fours = score.get('scoreDetails', {}).get('fours', 0)
-    sixes = score.get('scoreDetails', {}).get('sixes', 0)
-
-    msg = f"""
-🏏 {team1} vs {team2}
-🎲 Toss: {toss}
-🟢 Currently Batting: {batting}
-
-📊 Score: {total}/{wickets} in {overs} overs
-💥 4s: {fours} | 6s: {sixes} | Wickets: {wickets}
-📌 Status: {status}
-    """
-    await update.message.reply_text(msg.strip())
-
+# ▶️ অ্যাপ্লিকেশন তৈরি ও হ্যান্ডলার যুক্ত করা
 app = ApplicationBuilder().token(BOT_TOKEN).build()
-app.add_handler(CommandHandler("start", start))
-app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, match_details))
 
+app.add_handler(CommandHandler("start", start))
+app.add_handler(CommandHandler("help", help_command))
+
+# ▶️ বট চালু (24x7 polling mode)
 if __name__ == "__main__":
+    print("✅ Bot is running...")
     app.run_polling()
