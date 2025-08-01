@@ -1,22 +1,58 @@
+import logging
+import requests
 from telegram import Update
-from telegram.ext import ApplicationBuilder, CommandHandler, MessageHandler, ContextTypes, filters
+from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
-# তোমার বট টোকেন এখানে বসানো হয়েছে
+# ✅ তোমার Bot Token
 BOT_TOKEN = "8233163567:AAH3e52dUJBcI7oKwO5iMM5X1CsVHNujmsk"
 
-# /start কমান্ড হ্যান্ডলার
+# ✅ Cricket API (public free API)
+CRIC_API_URL = "https://api.cricapi.com/v1/currentMatches?apikey=demo&offset=0"
+
+# ✅ লগ সিস্টেম চালু
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
+
+# ✅ /start কমান্ড
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text("👋 হ্যালো! আমি Render-এ হোস্ট করা একটি লাইভ স্কোর বট!")
+    await update.message.reply_text("👋 হ্যালো! টাইপ করুন /score লাইভ ক্রিকেট স্কোর পেতে।")
 
-# সাধারণ মেসেজ হ্যান্ডলার (পরীক্ষামূলক)
-async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.message.reply_text(f"⚽ আপনি লিখেছেন: {update.message.text}")
+# ✅ /score কমান্ড
+async def score(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    try:
+        response = requests.get(CRIC_API_URL)
+        data = response.json()
 
-# এন্ট্রি পয়েন্ট
-if __name__ == "__main__":
+        if "data" not in data or not data["data"]:
+            await update.message.reply_text("⚠️ কোনো লাইভ ম্যাচ পাওয়া যায়নি!")
+            return
+
+        message = ""
+        for match in data["data"][:3]:  # কেবল ৩টা ম্যাচ দেখানো হবে
+            if match.get("status") == "live":
+                team1 = match["teams"][0]
+                team2 = match["teams"][1]
+                score = match["score"]
+                message += f"🏏 *{team1} vs {team2}*\n"
+                for s in score:
+                    message += f"{s['inning']} - {s['r']}/{s['w']} in {s['o']} overs\n"
+                message += f"📌 Status: {match['status']}\n\n"
+        
+        if not message:
+            message = "⚠️ কোনো ম্যাচ এখন লাইভ না।"
+
+        await update.message.reply_text(message, parse_mode='Markdown')
+    except Exception as e:
+        await update.message.reply_text(f"❌ সমস্যা হয়েছে: {e}")
+
+# ✅ অ্যাপ রান করানো
+if __name__ == '__main__':
     app = ApplicationBuilder().token(BOT_TOKEN).build()
 
     app.add_handler(CommandHandler("start", start))
-    app.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
+    app.add_handler(CommandHandler("score", score))
 
+    print("✅ Bot is running...")
     app.run_polling()
