@@ -4,6 +4,7 @@ from telegram import Update
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes
 
 BOT_TOKEN = "8233163567:AAH3e52dUJBcI7oKwO5iMM5X1CsVHNujmsk"
+API_KEY = "3fe5ae0f-e183-44ce-b878-870ec56be11f"
 
 logging.basicConfig(
     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
@@ -11,17 +12,18 @@ logging.basicConfig(
 )
 
 async def get_cricket_score():
-    url = "https://api.cricapi.com/v1/currentMatches?apikey=demo&offset=0"
+    url = f"https://api.cricapi.com/v1/currentMatches?apikey={API_KEY}&offset=0"
     async with aiohttp.ClientSession() as session:
         async with session.get(url) as resp:
             data = await resp.json()
 
-            matches = data.get("data", [])
+            # শুধু লাইভ ম্যাচগুলো নেবে
+            matches = [m for m in data.get("data", []) if "Live" in m.get("status", "")]
             if not matches:
-                return "❌ কোনো ম্যাচের তথ্য পাওয়া যায়নি।"
+                return "❌ এখন কোনো লাইভ ম্যাচ নেই।"
 
             result = ""
-            for match in matches[:3]:  # প্রথম ৩টি ম্যাচ দেখাবে
+            for match in matches[:3]:  # প্রথম ৩টি লাইভ ম্যাচ
                 team1 = match['teams'][0]
                 team2 = match['teams'][1]
                 status = match.get("status", "No status")
